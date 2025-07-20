@@ -4,17 +4,25 @@ phases:
   pre_build:
     commands:
       - echo Logging in to Amazon ECR...
-      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 163373677956.dkr.ecr.us-east-1.amazonaws.com
+      - aws --version
+      - $(aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 163373677956.dkr.ecr.us-east-1.amazonaws.com)
+      - REPOSITORY_URI=163373677956.dkr.ecr.us-east-1.amazonaws.com/node-app
+      - IMAGE_TAG=latest
+
   build:
     commands:
-      - echo Building Docker image...
+      - echo Build started on `date`
+      - echo Building the Docker image...
       - docker build -t node-app .
-      - docker tag node-app:latest 163373677956.dkr.ecr.us-east-1.amazonaws.com/node-app:latest
+      - docker tag node-app:latest $REPOSITORY_URI:$IMAGE_TAG
+
   post_build:
     commands:
-      - echo Pushing Docker image to Amazon ECR...
-      - docker push 163373677956.dkr.ecr.us-east-1.amazonaws.com/node-app:latest
+      - echo Pushing the Docker image...
+      - docker push $REPOSITORY_URI:$IMAGE_TAG
+      - echo Writing image definitions file...
+      - printf '[{"name":"node-app","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
+
 artifacts:
   files:
-    - appspec.yml
-    - scripts/start_container.sh
+    - imagedefinitions.json
